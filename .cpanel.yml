@@ -1,0 +1,4 @@
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/c2798164c/system_acedh/
+    - /bin/cp -R * $DEPLOYPATH
