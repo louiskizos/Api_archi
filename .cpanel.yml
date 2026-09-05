@@ -1,4 +1,8 @@
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/c2798164c/system_acedh/
+    - export DEPLOYPATH=/home/c2798164c/repositories/Api_archi/
     - /bin/cp -R * $DEPLOYPATH
+    - touch /home/c2798164c/repositories/Api_archi/passenger_wsgi.py
+
+
+    

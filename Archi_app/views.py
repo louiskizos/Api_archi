@@ -23,9 +23,7 @@ class RegisterView(generics.CreateAPIView):
 
 
 class DossierViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet pour la gestion des dossiers et leurs partages.
-    """
+    
     serializer_class = DossierSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
 
@@ -83,11 +81,10 @@ class DossierViewSet(viewsets.ModelViewSet):
 
 
 class FichierViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet pour la gestion des fichiers et leurs partages.
-    """
+
+    
     serializer_class = FichierSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
+   # permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
 
     def get_queryset(self):
         user = self.request.user

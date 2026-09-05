@@ -9,3 +9,9 @@ from django.test import TestCase
 #     "password": "1234",
 #     "role": "utilisateur"
 # }
+
+
+{
+    "username": "louis",
+    "password": "1234"
+}
