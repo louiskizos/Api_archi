@@ -84,7 +84,7 @@ AUTH_USER_MODEL = 'Archi_app.User'
 
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Doit rester en premier
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

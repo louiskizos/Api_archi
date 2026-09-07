@@ -18,4 +18,5 @@ urlpatterns = [
 
     # Authentification & Création de compte
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
+    path('auth/me/', CurrentUserView.as_view(), name='current-user'),
 ]

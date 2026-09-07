@@ -19,17 +19,19 @@ class User(AbstractUser):
         ('admin', 'Administrateur'),
         ('utilisateur', 'Utilisateur'),
         ('invite', 'Invité'),
+        ('comptable', 'Comptable'),
+        ('rh', 'Ressources Humaines'),
+        ('communication', 'Communication'),
+        ('avocat', 'Avocat'),
+        ('programme', 'Programme'),
+        ('secretaire', 'Secrétaire exécutif'),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='utilisateur')
 
 User = get_user_model()
 
 def upload_to_user_directory(instance, filename):
-    """
-    Stocke le fichier sous un chemin sécurisé et anonymisé avec UUID 
-    pour éviter les conflits et la prédictibilité des liens.
-    Ex: media/uploads/user_12/2026/09/uuid.ext
-    """
+    
     ext = filename.split('.')[-1]
     filename = f"{uuid.uuid4().hex}.{ext}"
     return os.path.join('uploads', f"user_{instance.proprietaire.id}", filename)

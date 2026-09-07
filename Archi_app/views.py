@@ -1,24 +1,23 @@
-# Archi_app/views.py
-
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
-
 from .models import Dossier, Fichier, PermissionDossier, PermissionFichier
 from .serializers import *
 from .permission import IsOwnerOrSharedAccess
-
-
 from rest_framework import generics, permissions
 from django.contrib.auth import get_user_model
 from .serializers import RegisterSerializer
+from rest_framework.views import APIView
+
+
+
 
 User = get_user_model()
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = [permissions.AllowAny]  # Accès public pour l'inscription
+    permission_classes = [permissions.AllowAny]  
     serializer_class = RegisterSerializer
 
 
@@ -38,10 +37,8 @@ class DossierViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='partager')
     def partager(self, request, pk=None):
-        """
-        POST /api/dossiers/{id}/partager/
-        Body: {"utilisateur_id": 2, "niveau_acces": "ecriture"}
-        """
+
+        
         dossier = self.get_object()
 
         if dossier.proprietaire != request.user:
@@ -80,11 +77,27 @@ class DossierViewSet(viewsets.ModelViewSet):
         return Response({'status': 'Permission révoquée avec succès.'})
 
 
+
+class CurrentUserView(APIView):
+   # permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserCurrentSerializer(request.user)
+        return Response(serializer.data)
+class CurrentUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserCurrentSerializer(request.user)
+        return Response(serializer.data)
+
+
+
 class FichierViewSet(viewsets.ModelViewSet):
 
     
     serializer_class = FichierSerializer
-   # permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
 
     def get_queryset(self):
         user = self.request.user

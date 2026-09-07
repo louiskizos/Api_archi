@@ -2,10 +2,6 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Dossier, Fichier, PermissionDossier, PermissionFichier
 
-
-
-# Archi_app/serializers.py
-
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth import get_user_model
@@ -87,6 +83,15 @@ class RegisterSerializer(serializers.ModelSerializer):
             role=validated_data.get('role', 'utilisateur')
         )
         return user
+
+
+User = get_user_model()
+
+class UserCurrentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role']
+        read_only_fields = ['id', 'role']    
 
 
 # Serializer pour afficher le profil public de l'utilisateur avec son rôle
