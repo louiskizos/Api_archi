@@ -9,6 +9,8 @@ from rest_framework import generics, permissions
 from django.contrib.auth import get_user_model
 from .serializers import RegisterSerializer
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 
@@ -19,6 +21,23 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]  
     serializer_class = RegisterSerializer
+
+
+class LogoutJWTView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Le jeton refresh est requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+            token = RefreshToken(refresh_token)
+            token.blacklist()  
+
+            return Response({"message": "Déconnexion réussie."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"error": "Jeton invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DossierViewSet(viewsets.ModelViewSet):
@@ -36,6 +55,7 @@ class DossierViewSet(viewsets.ModelViewSet):
         serializer.save(proprietaire=self.request.user)
 
     @action(detail=True, methods=['post'], url_path='partager')
+    
     def partager(self, request, pk=None):
 
         

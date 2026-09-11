@@ -15,3 +15,10 @@ from django.test import TestCase
     "username": "louis",
     "password": "1234"
 }
+
+
+{
+    "nom" : "Mon_Nouveau_dossier",
+    "parent" : null,
+    "proprietaire" : 2
+}
