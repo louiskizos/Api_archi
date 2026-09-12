@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
+User = get_user_model()
 
 
 
@@ -97,14 +98,8 @@ class DossierViewSet(viewsets.ModelViewSet):
         return Response({'status': 'Permission révoquée avec succès.'})
 
 
-
 class CurrentUserView(APIView):
-   # permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request):
-        serializer = UserCurrentSerializer(request.user)
-        return Response(serializer.data)
-class CurrentUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -112,6 +107,11 @@ class CurrentUserView(APIView):
         return Response(serializer.data)
 
 
+class UserListView(generics.ListAPIView):
+    
+    queryset = User.objects.all().order_by('id')
+    serializer_class = UserCurrentSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 class FichierViewSet(viewsets.ModelViewSet):
 
