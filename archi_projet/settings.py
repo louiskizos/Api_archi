@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-t0q&aeijm0a5lk48m&)$vr#8kejb68af)@mc628i14e$4^h9bw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ['system.acedh-rdc.org', 'www.system.acedh-rdc.org', '127.0.0.1', 'localhost']
 
 
@@ -33,9 +33,22 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
+    'drf_spectacular',
     
     
 ]
+
+
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API santinelle ACEDH',
+    'DESCRIPTION': 'Documentation de l\'API avec authentification JWT et partage de fichiers/dossiers.',
+    'VERSION': '0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
+
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -44,6 +57,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 CORS_ALLOWED_ORIGINS = [

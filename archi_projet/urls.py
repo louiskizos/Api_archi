@@ -7,6 +7,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from Archi_app.views import LogoutJWTView
 
@@ -18,7 +19,17 @@ urlpatterns = [
     path('api/auth/logout/', LogoutJWTView.as_view(), name='logout'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    
+    # Interface Swagger UI :
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    
+    # Interface alternative Redoc (optionnel) :
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('api/', include('Archi_app.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+

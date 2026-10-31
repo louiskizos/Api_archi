@@ -1,13 +1,22 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from .models import Dossier, Fichier, PermissionDossier, PermissionFichier
-
-from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth import get_user_model
+from .models import (
+    Dossier, 
+    Fichier, 
+    PermissionDossier, 
+    PermissionFichier, 
+    Client, 
+    Audience, 
+    Notification
+)
 
 User = get_user_model()
 
+
+# ==========================================
+# 1. UTILISATEURS & AUTHENTIFICATION
+# ==========================================
 class RegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
         required=True,
@@ -33,74 +42,58 @@ class RegisterSerializer(serializers.ModelSerializer):
         choices=getattr(User, 'ROLE_CHOICES', [
             ('admin', 'Administrateur'),
             ('utilisateur', 'Utilisateur'),
-            ('invite', 'Invité')
+            ('invite', 'Invité'),
+            ('comptable', 'Comptable'),
+            ('rh', 'Ressources Humaines'),
+            ('communication', 'Communication'),
+            ('avocat', 'Avocat'),
+            ('programme', 'Programme'),
+            ('secretaire', 'Secrétaire exécutif'),
         ]),
         default='utilisateur'
     )
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'role']
+        fields = ['id', 'username', 'email', 'password', 'role', 'telephone']
 
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
             password=validated_data['password'],
-            role=validated_data.get('role', 'utilisateur')
+            role=validated_data.get('role', 'utilisateur'),
+            telephone=validated_data.get('telephone', '')
         )
         return user
 
-User = get_user_model()
-
-# Serializer simplifié pour afficher l'utilisateur partagé
-class UserShareSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email']
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    role = serializers.ChoiceField(choices=getattr(User, 'ROLE_CHOICES', [
-        ('admin', 'Administrateur'),
-        ('utilisateur', 'Utilisateur'),
-        ('invite', 'Invité')
-    ]), default='utilisateur')
-
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'password', 'role']
-
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data.get('email', ''),
-            password=validated_data['password'],
-            role=validated_data.get('role', 'utilisateur')
-        )
-        return user
-
-
-User = get_user_model()
 
 class UserCurrentSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'telephone']
         read_only_fields = ['id', 'role']    
 
 
-# Serializer pour afficher le profil public de l'utilisateur avec son rôle
 class UserShareSerializer(serializers.ModelSerializer):
+    """Serializer public pour afficher les utilisateurs lors des partages."""
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'role']
 
-# Serializers pour afficher les permissions accordées
+
+# ==========================================
+# 2. CLIENTS
+# ==========================================
+class ClientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Client
+        fields = '__all__'
+
+
+# ==========================================
+# 3. PERMISSIONS
+# ==========================================
 class PermissionFichierSerializer(serializers.ModelSerializer):
     utilisateur = UserShareSerializer(read_only=True)
 
@@ -117,7 +110,9 @@ class PermissionDossierSerializer(serializers.ModelSerializer):
         fields = ['id', 'utilisateur', 'niveau_acces']
 
 
-# Serializer Fichier enrichi
+# ==========================================
+# 4. FICHIERS & DOSSIERS
+# ==========================================
 class FichierSerializer(serializers.ModelSerializer):
     proprietaire = serializers.ReadOnlyField(source='proprietaire.username')
     permissions_partage = PermissionFichierSerializer(many=True, read_only=True)
@@ -143,9 +138,9 @@ class FichierSerializer(serializers.ModelSerializer):
         return perm.niveau_acces if perm else None
 
 
-# Serializer Dossier enrichi
 class DossierSerializer(serializers.ModelSerializer):
     proprietaire = serializers.ReadOnlyField(source='proprietaire.username')
+    client_detail = ClientSerializer(source='client', read_only=True)
     permissions_partage = PermissionDossierSerializer(many=True, read_only=True)
     sous_dossiers = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     fichiers = FichierSerializer(many=True, read_only=True)
@@ -153,6 +148,28 @@ class DossierSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dossier
         fields = [
-            'id', 'nom', 'parent', 'proprietaire', 
-            'permissions_partage', 'sous_dossiers', 'fichiers', 'created_at'
+            'id', 'nom', 'client', 'client_detail', 'type_affaire', 
+            'tribunal', 'statut', 'parent', 'proprietaire', 
+            'permissions_partage', 'sous_dossiers', 'fichiers', 
+            'created_at', 'updated_at'
         ]
+        read_only_fields = ['proprietaire', 'created_at', 'updated_at']
+
+
+# ==========================================
+# 5. AUDIENCES & NOTIFICATIONS
+# ==========================================
+class AudienceSerializer(serializers.ModelSerializer):
+    dossier_nom = serializers.ReadOnlyField(source='dossier.nom')
+
+    class Meta:
+        model = Audience
+        fields = ['id', 'dossier', 'dossier_nom', 'date_audience', 'tribunal', 'observations', 'rappel_envoye', 'date_creation']
+        read_only_fields = ['rappel_envoye', 'date_creation']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'destinataire', 'titre', 'message', 'type_notification', 'est_lue', 'date_creation']
+        read_only_fields = ['destinataire', 'date_creation']
