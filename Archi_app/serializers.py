@@ -1,15 +1,9 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth import get_user_model
-from .models import (
-    Dossier, 
-    Fichier, 
-    PermissionDossier, 
-    PermissionFichier, 
-    Client, 
-    Audience, 
-    Notification
-)
+from .models import *
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 
 User = get_user_model()
 
@@ -68,6 +62,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+
+class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Personnalise SimpleJWT pour utiliser 'email' au lieu de 'username' comme identifiant.
+    """
+    username_field = 'email'
+
+    def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        if email and password:
+            attrs["username"] = email
+            
+        return super().validate(attrs)
+
+
 class UserCurrentSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -111,7 +122,7 @@ class PermissionDossierSerializer(serializers.ModelSerializer):
 
 
 # ==========================================
-# 4. FICHIERS & DOSSIERS
+# 4. FICHIERS & DOSSIERS SYSTÈME
 # ==========================================
 class FichierSerializer(serializers.ModelSerializer):
     proprietaire = serializers.ReadOnlyField(source='proprietaire.username')
@@ -122,7 +133,7 @@ class FichierSerializer(serializers.ModelSerializer):
         model = Fichier
         fields = [
             'id', 'nom_original', 'fichier', 'taille', 
-            'mime_type', 'dossier', 'proprietaire', 
+            'mime_type', 'dossier', 'dossier_juridique', 'proprietaire', 
             'is_public', 'permissions_partage', 'mon_niveau_acces',
             'created_at', 'updated_at'
         ]
@@ -140,7 +151,6 @@ class FichierSerializer(serializers.ModelSerializer):
 
 class DossierSerializer(serializers.ModelSerializer):
     proprietaire = serializers.ReadOnlyField(source='proprietaire.username')
-    client_detail = ClientSerializer(source='client', read_only=True)
     permissions_partage = PermissionDossierSerializer(many=True, read_only=True)
     sous_dossiers = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     fichiers = FichierSerializer(many=True, read_only=True)
@@ -148,8 +158,7 @@ class DossierSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dossier
         fields = [
-            'id', 'nom', 'client', 'client_detail', 'type_affaire', 
-            'tribunal', 'statut', 'parent', 'proprietaire', 
+            'id', 'nom', 'parent', 'proprietaire', 
             'permissions_partage', 'sous_dossiers', 'fichiers', 
             'created_at', 'updated_at'
         ]
@@ -157,14 +166,36 @@ class DossierSerializer(serializers.ModelSerializer):
 
 
 # ==========================================
-# 5. AUDIENCES & NOTIFICATIONS
+# 5. DOSSIERS JURIDIQUES (Métier LegalTech)
+# ==========================================
+class DossierJuridiqueSerializer(serializers.ModelSerializer):
+    proprietaire = serializers.ReadOnlyField(source='proprietaire.username')
+    client_detail = ClientSerializer(source='client', read_only=True)
+    fichiers_juridiques = FichierSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Dossier_juridique
+        fields = [
+            'id', 'nom', 'client', 'client_detail', 'type_affaire', 
+            'tribunal', 'statut', 'proprietaire', 'fichiers_juridiques', 
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['proprietaire', 'created_at', 'updated_at']
+
+
+# ==========================================
+# 6. AUDIENCES & NOTIFICATIONS
 # ==========================================
 class AudienceSerializer(serializers.ModelSerializer):
-    dossier_nom = serializers.ReadOnlyField(source='dossier.nom')
+    dossier_juridique_nom = serializers.ReadOnlyField(source='dossier_juridique.nom')
 
     class Meta:
         model = Audience
-        fields = ['id', 'dossier', 'dossier_nom', 'date_audience', 'tribunal', 'observations', 'rappel_envoye', 'date_creation']
+        fields = [
+            'id', 'dossier_juridique', 'dossier_juridique_nom', 
+            'date_audience', 'tribunal', 'observations', 
+            'rappel_envoye', 'date_creation'
+        ]
         read_only_fields = ['rappel_envoye', 'date_creation']
 
 

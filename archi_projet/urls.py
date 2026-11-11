@@ -15,7 +15,7 @@ urlpatterns = [
 
     path('admin/', admin.site.urls),
 
-    path('api/auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    #path('api/auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/logout/', LogoutJWTView.as_view(), name='logout'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),

@@ -53,20 +53,10 @@ class Client(models.Model):
 
 
 # ==========================================
-# 3. GESTION DES DOSSIERS JURIDIQUES
+# 3. DOSSIER SYSTÈME (Stockage technique)
 # ==========================================
 class Dossier(models.Model):
-    class Statut(models.TextChoices):
-        EN_COURS = 'EN_COURS', 'En cours'
-        JUGE = 'JUGE', 'Jugé'
-        ARCHIVE = 'ARCHIVE', 'Archivé'
-
-    nom = models.CharField(max_length=255, help_text="Nom ou référence du dossier")
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='dossiers', null=True, blank=True)
-    type_affaire = models.CharField(max_length=100, blank=True, null=True, help_text="Ex: Droit civil, Pénal...")
-    tribunal = models.CharField(max_length=150, blank=True, null=True)
-    statut = models.CharField(max_length=20, choices=Statut.choices, default=Statut.EN_COURS)
-    
+    nom = models.CharField(max_length=255)
     parent = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, blank=True, related_name='sous_dossiers'
     )
@@ -77,14 +67,44 @@ class Dossier(models.Model):
     class Meta:
         unique_together = ('nom', 'parent', 'proprietaire')
         ordering = ['nom']
+        verbose_name = "Dossier Système"
+        verbose_name_plural = "Dossiers Systèmes"
 
     def __str__(self):
-        client_str = f" - Client: {self.client}" if self.client else ""
-        return f"{self.nom}{client_str} (Propriétaire: {self.proprietaire.username})"
+        return f"{self.nom} (Propriétaire: {self.proprietaire.username})"
 
 
 # ==========================================
-# 4. GESTION DES FICHIERS & SÉCURITÉ
+# 4. DOSSIER JURIDIQUE (Métier LegalTech)
+# ==========================================
+class Dossier_juridique(models.Model):
+    class Statut(models.TextChoices):
+        EN_COURS = 'EN_COURS', 'En cours'
+        JUGE = 'JUGE', 'Jugé'
+        ARCHIVE = 'ARCHIVE', 'Archivé'
+
+    nom = models.CharField(max_length=255, help_text="Nom ou référence du dossier juridique")
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='dossiers_juridiques', null=True, blank=True)
+    type_affaire = models.CharField(max_length=100, blank=True, null=True, help_text="Ex: Droit civil, Pénal...")
+    tribunal = models.CharField(max_length=150, blank=True, null=True)
+    statut = models.CharField(max_length=20, choices=Statut.choices, default=Statut.EN_COURS)
+    
+    proprietaire = models.ForeignKey(User, on_delete=models.CASCADE, related_name='dossiers_juridiques')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Dossier Juridique"
+        verbose_name_plural = "Dossiers Juridiques"
+        ordering = ['nom']
+
+    def __str__(self):
+        client_str = f" - Client: {self.client}" if self.client else ""
+        return f"[Juridique] {self.nom}{client_str} (Propriétaire: {self.proprietaire.username})"
+
+
+# ==========================================
+# 5. GESTION DES FICHIERS & SÉCURITÉ
 # ==========================================
 class Fichier(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -93,11 +113,16 @@ class Fichier(models.Model):
     taille = models.BigIntegerField(editable=False)  # Taille en octets
     mime_type = models.CharField(max_length=100, editable=False)
     
+    # Lié au dossier système pour l'arborescence des fichiers
     dossier = models.ForeignKey(
         Dossier, on_delete=models.CASCADE, null=True, blank=True, related_name='fichiers'
     )
-    proprietaire = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fichiers')
+    # Optionnel: On peut aussi lier directement un fichier à un dossier juridique
+    dossier_juridique = models.ForeignKey(
+        Dossier_juridique, on_delete=models.CASCADE, null=True, blank=True, related_name='fichiers_juridiques'
+    )
     
+    proprietaire = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fichiers')
     is_public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -118,7 +143,6 @@ class Fichier(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk or self._state.adding:
-            # Capturer la taille du fichier et son nom
             self.taille = self.fichier.size
             self.nom_original = self.fichier.name
             
@@ -143,7 +167,7 @@ class Fichier(models.Model):
 
 
 # ==========================================
-# 5. PERMISSIONS DE PARTAGE
+# 6. PERMISSIONS DE PARTAGE
 # ==========================================
 NIVEAU_ACCES = (
     ('lecture', 'Lecture seule'),
@@ -169,10 +193,11 @@ class PermissionFichier(models.Model):
 
 
 # ==========================================
-# 6. GESTION DES AUDIENCES ET CALENDRIER
+# 7. GESTION DES AUDIENCES ET CALENDRIER
 # ==========================================
 class Audience(models.Model):
-    dossier = models.ForeignKey(Dossier, on_delete=models.CASCADE, related_name='audiences')
+    # Les audiences sont rattachées logiquement aux dossiers juridiques
+    dossier_juridique = models.ForeignKey(Dossier_juridique, on_delete=models.CASCADE, related_name='audiences')
     date_audience = models.DateTimeField()
     tribunal = models.CharField(max_length=150)
     observations = models.TextField(blank=True, null=True)
@@ -187,11 +212,11 @@ class Audience(models.Model):
 
     def __str__(self):
         date_str = self.date_audience.strftime('%d/%m/%Y %H:%M') if self.date_audience else "Date non définie"
-        return f"Audience du {date_str} - Dossier: {self.dossier.nom}"
+        return f"Audience du {date_str} - Dossier: {self.dossier_juridique.nom}"
 
 
 # ==========================================
-# 7. NOTIFICATIONS ET RAPPELS
+# 8. NOTIFICATIONS ET RAPPELS
 # ==========================================
 class Notification(models.Model):
     class TypeNotification(models.TextChoices):

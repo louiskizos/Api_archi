@@ -8,12 +8,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from rest_framework import serializers
-
-# Ajout des nouveaux modèles Client, Audience et Notification
-from .models import Dossier, Fichier, PermissionDossier, PermissionFichier, Client, Audience, Notification
+from .models import *
 from .serializers import *
 from .permission import IsOwnerOrSharedAccess
+from rest_framework_simplejwt.views import TokenObtainPairView
 
+class EmailTokenObtainPairView(TokenObtainPairView):
+    serializer_class = EmailTokenObtainPairSerializer
 User = get_user_model()
 
 
@@ -34,6 +35,9 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]  
     serializer_class = RegisterSerializer
+
+class EmailTokenObtainPairView(TokenObtainPairView):
+    serializer_class = EmailTokenObtainPairSerializer
 
 
 class LogoutJWTView(APIView):
@@ -89,7 +93,7 @@ class ClientViewSet(viewsets.ModelViewSet):
 
 
 # ==========================================
-# 2. DOSSIERS VIEWS
+# 2. DOSSIERS SYSTÈME VIEWS (Stockage)
 # ==========================================
 class DossierViewSet(viewsets.ModelViewSet):
     serializer_class = DossierSerializer
@@ -107,7 +111,7 @@ class DossierViewSet(viewsets.ModelViewSet):
     @extend_schema(
         request=PartageRequestSerializer,
         responses={200: OpenApiTypes.OBJECT, 403: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT},
-        description="Partage un dossier avec un autre utilisateur (accessible uniquement au propriétaire)."
+        description="Partage un dossier système avec un autre utilisateur."
     )
     @action(detail=True, methods=['post'], url_path='partager')
     def partager(self, request, pk=None):
@@ -135,7 +139,7 @@ class DossierViewSet(viewsets.ModelViewSet):
     @extend_schema(
         request=RevokerPartageRequestSerializer,
         responses={200: OpenApiTypes.OBJECT, 403: OpenApiTypes.OBJECT},
-        description="Révoque l'accès d'un utilisateur à ce dossier."
+        description="Révoque l'accès d'un utilisateur à ce dossier système."
     )
     @action(detail=True, methods=['post'], url_path='revoker-partage')
     def revoker_partage(self, request, pk=None):
@@ -151,17 +155,50 @@ class DossierViewSet(viewsets.ModelViewSet):
 
 
 # ==========================================
-# 3. FICHIERS VIEWS
+# 3. DOSSIERS JURIDIQUES VIEWS (Métier)
 # ==========================================
-class FichierViewSet(viewsets.ModelViewSet):
-    serializer_class = FichierSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
+class DossierJuridiqueViewSet(viewsets.ModelViewSet):
+    """
+    API pour la gestion des dossiers juridiques du cabinet (affaires, tribunaux, clients).
+    """
+    serializer_class = DossierJuridiqueSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        return Fichier.objects.filter(
+        if user.is_staff:
+            return Dossier_juridique.objects.all()
+        # Les avocats/utilisateurs voient leurs dossiers
+        return Dossier_juridique.objects.filter(proprietaire=user)
+
+    def perform_create(self, serializer):
+        serializer.save(proprietaire=self.request.user)
+
+
+# ==========================================
+# 4. FICHIERS VIEWS
+# ==========================================
+class FichierViewSet(viewsets.ModelViewSet):
+    serializer_class = FichierSerializer
+   # permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Fichier.objects.filter(
             Q(proprietaire=user) | Q(permissions_partage__utilisateur=user)
         ).distinct()
+
+        # Filtrer par dossier système si spécifié dans l'URL (?dossier=ID)
+        dossier_id = self.request.query_params.get('dossier')
+        if dossier_id:
+            queryset = queryset.filter(dossier_id=dossier_id)
+
+        # Filtrer par dossier juridique si spécifié dans l'URL (?dossier_juridique=ID)
+        dossier_juridique_id = self.request.query_params.get('dossier_juridique')
+        if dossier_juridique_id:
+            queryset = queryset.filter(dossier_juridique_id=dossier_juridique_id)
+
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(proprietaire=self.request.user)
@@ -169,7 +206,7 @@ class FichierViewSet(viewsets.ModelViewSet):
     @extend_schema(
         request=PartageRequestSerializer,
         responses={200: OpenApiTypes.OBJECT, 403: OpenApiTypes.OBJECT, 400: OpenApiTypes.OBJECT},
-        description="Partage un fichier avec un autre utilisateur (accessible uniquement au propriétaire)."
+        description="Partage un fichier avec un autre utilisateur."
     )
     @action(detail=True, methods=['post'], url_path='partager')
     def partager(self, request, pk=None):
@@ -211,32 +248,28 @@ class FichierViewSet(viewsets.ModelViewSet):
 
         return Response({'status': 'Permission révoquée avec succès.'})
 
-
 # ==========================================
-# 4. AUDIENCES VIEWS
+# 5. AUDIENCES VIEWS
 # ==========================================
 class AudienceViewSet(viewsets.ModelViewSet):
     """
-    API pour la planification et le suivi des audiences liées aux dossiers.
+    API pour la planification et le suivi des audiences liées aux dossiers juridiques.
     """
     queryset = Audience.objects.all()
     serializer_class = AudienceSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Optionnel: Filtrer les audiences si l'utilisateur a accès au dossier concerné
         user = self.request.user
         if user.is_staff:
             return Audience.objects.all()
-        return Audience.objects.filter(
-            Q(dossier__proprietaire=user) | Q(dossier__permissions_partage__utilisateur=user)
-        ).distinct()
+        # Filtrer par les audiences liées aux dossiers juridiques appartenant à l'utilisateur
+        return Audience.objects.filter(dossier_juridique__proprietaire=user).distinct()
 
 
 # ==========================================
-# 5. NOTIFICATIONS VIEWS
+# 6. NOTIFICATIONS VIEWS
 # ==========================================
-
 class NotificationViewSet(viewsets.ModelViewSet):
     """
     API pour gérer les notifications de l'utilisateur connecté (rappels d'audiences, etc.).
@@ -245,7 +278,6 @@ class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Un utilisateur ne voit que ses propres notifications
         return Notification.objects.filter(destinataire=self.request.user)
 
     @action(detail=True, methods=['post'], url_path='marquer-comme-lue')

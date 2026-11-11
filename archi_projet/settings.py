@@ -1,9 +1,10 @@
-
 from pathlib import Path
 import os
 from datetime import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -42,12 +43,15 @@ INSTALLED_APPS = [
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'API santinelle ACEDH',
-    'DESCRIPTION': 'Documentation de l\'API avec authentification JWT et partage de fichiers/dossiers.',
+    'DESCRIPTION': 'Documentation de l\'API Santinelle ACEDH-RDC plateforme securise avec authentification.',
     'VERSION': '0.1',
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-
+AUTHENTICATION_BACKENDS = [
+    'Archi_app.backends.EmailBackend',  
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 
 REST_FRAMEWORK = {
