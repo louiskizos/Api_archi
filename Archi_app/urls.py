@@ -11,7 +11,7 @@ router.register(r'dossiers-juridiques', DossierJuridiqueViewSet, basename='dossi
 router.register(r'fichiers', FichierViewSet, basename='fichier')
 router.register(r'audiences', AudienceViewSet, basename='audience')
 router.register(r'notifications', NotificationViewSet, basename='notification')
-router.register(r'auth/register/', UserViewSet, basename='utilisateur')  # Gestion des utilisateurs
+router.register(r'auth/register', UserViewSet, basename='utilisateur')  # Gestion des utilisateurs
 urlpatterns = [
     # Routes automatiques du routeur DRF
     path('', include(router.urls)),
