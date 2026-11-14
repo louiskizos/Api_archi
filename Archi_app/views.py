@@ -180,7 +180,18 @@ class DossierJuridiqueViewSet(viewsets.ModelViewSet):
 # ==========================================
 class FichierViewSet(viewsets.ModelViewSet):
     serializer_class = FichierSerializer
-   # permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrSharedAccess]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='dossier', description='Filtrer par ID du dossier système', required=False, type=OpenApiTypes.INT),
+            OpenApiParameter(name='dossier_juridique', description='Filtrer par ID du dossier juridique', required=False, type=OpenApiTypes.INT),
+        ],
+        description="Liste les fichiers avec possibilité de filtrer par ID de dossier (?dossier=ID ou ?dossier_juridique=ID)."
+    )
+    def list(self, request, *args, **kwargs):
+        """Surchargé uniquement pour afficher les paramètres de filtrage dans Swagger"""
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -247,7 +258,7 @@ class FichierViewSet(viewsets.ModelViewSet):
         PermissionFichier.objects.filter(fichier=fichier, utilisateur_id=user_id).delete()
 
         return Response({'status': 'Permission révoquée avec succès.'})
-
+    
 # ==========================================
 # 5. AUDIENCES VIEWS
 # ==========================================

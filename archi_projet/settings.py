@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-t0q&aeijm0a5lk48m&)$vr#8kejb68af)@mc628i14e$4^h9bw'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = ['system.acedh-rdc.org', 'www.system.acedh-rdc.org', '127.0.0.1', 'localhost']
 
 
@@ -144,6 +144,22 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'c2798164c_ceparcrea_bd',
+#         'USER': 'c2798164c_ceparcrea_user',
+#         'PASSWORD': 'Admin_ceparcea@2026',  
+#         'HOST': '127.0.0.1',
+#         'PORT': '3306',
+#         'CONN_MAX_AGE': 0,                     
+#         'OPTIONS': {
+#             'ssl': False,                      
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         }
+#     }
+# }
 
 
 # Password validation
