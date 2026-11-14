@@ -31,10 +31,32 @@ class LogoutRequestSerializer(serializers.Serializer):
 # ------------------------------------------------------------------------------
 
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    permission_classes = [permissions.AllowAny]  
-    serializer_class = RegisterSerializer
+# class RegisterView(generics.CreateAPIView):
+#     queryset = User.objects.all()
+#     permission_classes = [permissions.AllowAny]  
+#     serializer_class = RegisterSerializer
+
+
+User = get_user_model()
+
+class UserViewSet(viewsets.ModelViewSet):
+    
+    queryset = User.objects.all().order_by('id')
+
+    def get_serializer_class(self):
+        # Utiliser RegisterSerializer uniquement pour la création (inscription)
+        if self.action == 'create':
+            return RegisterSerializer
+        # Utiliser un sérialiseur standard pour la lecture, modification, etc.
+        return UserCurrentSerializer
+
+    def get_permissions(self):
+        
+        if self.action == 'create':
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
 class EmailTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer

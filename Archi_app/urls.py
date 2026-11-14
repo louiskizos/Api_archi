@@ -11,13 +11,12 @@ router.register(r'dossiers-juridiques', DossierJuridiqueViewSet, basename='dossi
 router.register(r'fichiers', FichierViewSet, basename='fichier')
 router.register(r'audiences', AudienceViewSet, basename='audience')
 router.register(r'notifications', NotificationViewSet, basename='notification')
-
+router.register(r'auth/register/', UserViewSet, basename='utilisateur')  # Gestion des utilisateurs
 urlpatterns = [
     # Routes automatiques du routeur DRF
     path('', include(router.urls)),
 
     # Authentification, Profil & Gestion des utilisateurs
-    path('auth/register/', RegisterView.as_view(), name='auth_register'),
     path('auth/me/', CurrentUserView.as_view(), name='current-user'),
     path('auth/logout/', LogoutJWTView.as_view(), name='logout'),
     path('users/', UserListView.as_view(), name='user-list'),
